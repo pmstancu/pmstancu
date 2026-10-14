@@ -1,0 +1,16 @@
+# Serviciul care citește ESP32 și servește dashboard-ul pe http://127.0.0.1:8080
+# Instalare: vezi docs/05-cm5-instalare.md. Înlocuiește REPLACE_ME și utilizatorul "pi" dacă e cazul.
+[Unit]
+Description=LC100 gauge hub (ESP32 -> web dashboard)
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/pmstancu/cm5
+ExecStart=/home/pi/pmstancu/cm5/.venv/bin/python -m gaugehub --port /dev/serial/by-id/REPLACE_ME --log-dir /home/pi/gaugehub-logs
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
