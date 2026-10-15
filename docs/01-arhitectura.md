@@ -1,68 +1,70 @@
 # 1. Arhitectură
 
-## Principiu: două niveluri
+## De ce un ESP32-S3 și nu Raspberry Pi sau Arduino
+
+| | ESP32-S3 | Raspberry Pi 4B/5 | Arduino Uno/Nano |
+|---|---|---|---|
+| Pornire | ~1 s | zeci de secunde (Linux) | instant |
+| Tăierea contactului | fără risc (nu are sistem de operare pe card) | risc de corupere a cardului SD | fără risc |
+| RAM pentru display 240×240 | suficient | suficient | **insuficient** (2 KB) |
+| Wi-Fi | da | da | nu |
+| Consum | mic | mare (Pi 5 are nevoie de răcire) | mic |
+
+Toate cifrele sunt aproximative. Pentru 3 display-uri mici, o pagină web și un log CSV,
+un ESP32-S3 e suficient, iar un Pi ar complica alimentarea și oprirea.
+
+## Schema
 
 ```
-                       ┌──────────────────────────────── ESP32-S3 ────────────────────────────────┐
- Pt100 apă   ──────────┤ MAX31865 #1 ┐                                                           │
- Pt100 ulei  ──────────┤ MAX31865 #2 ├─ SPI software (pini 11/12/13) ─► task "temps" (core 0)    │
- Pt100 aer   ──────────┤ MAX31865 #3 │                                                           │
- Tip K EGT   ──────────┤ MAX31856    ┘                                         │                 │
- AEM AFR 0-5V ─ divizor┤                                                       ▼                 │
- Auber boost ─ divizor ┤ ADS1115 ── I2C (pini 8/9) ─► task "analog" (core 0) ─► Snapshot +      │
- 12V baterie ─ divizor ┤                                                         alarme cu      │
- 5V referință ─ divizor┤                                                         histerezis     │
-                       │                                                       │                 │
-                       │    loop() (core 1): display GC9A01 20 fps, buzzer, buton, JSON 10 Hz    │
-                       └───────────────────────────────────────────────────────┬─────────────────┘
-                                                                               │ USB (CDC serial)
-                       ┌──────────────────────────── CM5 ─────────────────────▼─────────────────┐
-                       │  gaugehub: citire serial ─► log CSV zilnic                             │
-                       │                         └─► server web ─► Chromium kiosk pe 7"        │
-                       │                                        └─► (opțional) telefon pe Wi-Fi │
-                       │  + alte aplicații: SDR, GPS etc.                                       │
-                       └────────────────────────────────────────────────────────────────────────┘
+                 ┌──────────────────────────── ESP32-S3 ─────────────────────────────┐
+ Pt100 apă  ─────┤ MAX31865 #1 ┐                                                     │
+ Pt100 ulei ─────┤ MAX31865 #2 ├─ SPI software ─► task „temps” (core 0, ~4 Hz)       │
+ Pt100 aer  ─────┤ MAX31865 #3 │                       │                             │
+ Tip K EGT  ─────┤ MAX31856    ┘                       ▼                             │
+ AEM 0-5 V ─div──┤                               task „fast” (core 0, ~40 Hz):       │
+ Auber ────div───┤ ADS1115 ── I2C ─────────────► conversii, filtrare, alegere λ,     │
+ 12 V ─────div───┤                               alarme cu histerezis ─► Snapshot     │
+ 5 V ref ──div───┤                                     ▲                    │         │
+ AEM RS232 ─MAX3232─ UART1 RX ─────────────────────────┘                    │         │
+                 │                                                          ▼         │
+                 │  loop() pe core 1: 3 × GC9A01 (HSPI) · buton · buzzer             │
+                 │                    log CSV pe microSD (FSPI) · server web (Wi-Fi AP)│
+                 └───────────────────────────────────────────────────────────────────┘
 ```
 
-## De ce așa
+## Decizii
 
-- **ESP32 este sursa de adevăr pentru alarme.** Pragurile sunt în `config.h`, iar nivelul
-  de alarmă (0 = OK, 1 = avertizare, 2 = critic) se trimite către CM5. Dashboard-ul
-  nu recalculează alarmele, deci cele două afișaje nu pot ajunge să se contrazică.
-- **Pornire instant, fără risc la tăierea curentului.** ESP32 nu are sistem de fișiere de
-  corupt. CM5 poate porni mai încet sau poate fi oprit fără ca indicațiile critice să dispară.
-- **Senzorii au magistrala lor.** Termocuplul și Pt100 sunt citiți pe un SPI software
-  separat de display, deci nu apar conflicte de mod SPI sau de viteză.
-- **Citirile lente nu blochează afișajul.** O conversie MAX31865 durează aproximativ
-  75 ms (din codul bibliotecii Adafruit). Rulează pe core 0, iar display-ul pe core 1.
+- **Trei magistrale separate.** Senzorii sunt pe un SPI software, display-urile pe HSPI și
+  cardul SD pe FSPI. Așa nu apar conflicte de mod sau de viteză SPI, iar un card lent nu
+  blochează desenarea.
+- **Citirile lente nu blochează afișajul.** O citire MAX31865 durează aproximativ 75 ms
+  (biblioteca Adafruit pornește curentul de polarizare, așteaptă, apoi convertește).
+  Senzorii rulează pe core 0, iar display-urile și serverul web pe core 1.
+- **Alarmele se calculează într-un singur loc** (task-ul „fast”). Display-urile, buzzerul,
+  pagina web și log-ul primesc același nivel de alarmă, deci nu se pot contrazice.
+- **Trei display-uri pe același SPI.** SCK, MOSI, DC și RST sunt comune, iar fiecare
+  display are pinul lui CS, comandat din cod (`TFT_CS=-1` în TFT_eSPI). Fiecare ecran se
+  desenează într-un buffer (sprite) și se trimite doar dacă s-a schimbat ceva pe el.
+  Un cadru complet 240×240 la 40 MHz durează aproximativ 23 ms (calculat, nemăsurat).
+- **λ: serialul are prioritate.** Ieșirea analogică AEM acoperă probabil doar λ ≈ 0.58–1.23
+  (după un retailer, de confirmat în manual), iar un diesel merge cu λ mai mare la ralanti
+  și în croazieră. De aceea se folosește serialul cât timp vin date (cel mult 1 s vechime).
+  Altfel se folosește ieșirea analogică; la capătul scalei ecranul arată „>1.23”.
+- **Setările se salvează în NVS** (memoria flash a ESP32), ca text JSON, și se validează
+  înainte de salvare. Dacă datele salvate sunt corupte, se folosesc valorile implicite.
+- **Wi-Fi-ul este oprit implicit.** Se pornește la cerere și se oprește singur după 10 minute
+  fără activitate (configurabil). Așa se reduc consumul și interferențele.
 
 ## Ritmuri
 
 | Ce | Frecvență aproximativă |
 |---|---|
-| ADS1115 (boost, AFR, baterie) | ~40 Hz, filtrat EMA |
-| Fiecare Pt100 | ~4 Hz |
-| EGT (MAX31856 în mod continuu) | ~12 Hz citire; cipul face conversii la aproximativ 10 Hz (de verificat în fișa tehnică) |
-| Display GC9A01 | ~20 fps |
-| Telemetrie către CM5 | 10 Hz |
+| ADS1115 (4 canale), serial AEM, alarme | ~40 Hz |
+| Fiecare Pt100 + EGT | ~4 Hz |
+| Verificare display-uri | 20 Hz (se redesenează doar ce s-a schimbat) |
+| Log CSV | 10 Hz implicit (configurabil 50–10000 ms) |
 
-## Protocolul serial (ESP32 → CM5)
+## Filtrare
 
-Câte un obiect JSON pe linie, la 115200 baud (pe USB nativ viteza nu contează):
-
-```json
-{"t":123456,"v":{"ect":88.1,"eot":95.0,"iat":41.2,"egt":612.0,"boost":1.48,"afr":19.6,"vbat":14.1},
- "l":{"ect":0,"eot":0,"iat":0,"egt":0,"boost":0,"afr":0,"vbat":0},
- "f":{"ect":0,"eot":0,"iat":0,"egt":0,"boost":0,"afr":0,"vbat":0}}
-{"hello":"esp32-gauges","fw":"0.1.0"}
-```
-
-- `v`: valori. Temperaturile sunt în °C, `boost` în bar relativ, `afr` pe scara benzinei (λ = AFR / 14.7), `vbat` în V. `null` înseamnă senzor indisponibil.
-- `l`: nivel de alarmă.
-- `f`: cod de defect. 0 = OK, 255 = cip/senzor absent; orice altă valoare este registrul de defecte al MAX3186x.
-
-## Display-ul rotund (GC9A01)
-
-Butonul scurt trece prin paginile EGT → Boost → Temperaturi → Lambda/Baterie. Un canal
-în alarmă critică forțează afișarea paginii lui și pornește buzzerul. Apăsarea lungă
-(peste 1.5 s) oprește buzzerul până când alarmele dispar.
+Medie exponențială: boost și λ analogic α = 0.35, baterie α = 0.15, temperaturi α = 0.5.
+O citire invalidă (fir rupt, cip absent) nu e filtrată: valoarea devine imediat „---”.

@@ -1,54 +1,66 @@
 # 3. Schema de cablaj
 
-> Toți pinii se pot schimba în `firmware/esp32-gauges/include/config.h`. Pinii display-ului
-> se schimbă în `platformio.ini`. Pinii de mai jos sunt pentru **ESP32-S3-DevKitC-1**.
-> Pinii 0, 3, 45 și 46 (strapping) și 19/20 (USB) nu sunt folosiți.
+> Pinii se schimbă în `firmware/lc100-gauge/include/pins.h`. Pinii display-urilor (SCLK, MOSI,
+> DC, RST) se schimbă în `platformio.ini`. Pinii de mai jos sunt pentru **ESP32-S3-DevKitC-1**.
+> Nu sunt folosiți: 0, 3, 45, 46 (strapping), 19/20 (USB), 26–37 (flash/PSRAM), 43/44 (UART0),
+> 38/48 (LED-ul RGB de pe placă, poziția depinde de revizie).
 
 ## 3.1 Alimentare
 
 ```
- Baterie +12V ──[siguranță 3A]──┬── contact (IG/ACC) ──┬──► Convertor DC-DC 12→5V ──► ESP32 pin 5V
-                                │                      │          (≥2A)
-                                │                      ├──► TVS la masă (cât mai aproape de intrare)
-                                │                      ├──► Regulator 5V low-noise ──► +5V senzor Auber
-                                │                      │                          └──► divizor ─► ADS A3
-                                │                      └──► divizor 100k/22k ─► ADS A2 (tensiune baterie)
-                                │
-                                └── M2-ATX-HV (alimentare CM5, intrare separată, conform manualului lui)
+ Baterie +12V ──[siguranță 3A]── contact (IG/ACC) ──┬──► TVS la masă (cât mai aproape de intrare)
+                                                    ├──► DC-DC 12→5V (≥2A) ──► ESP32 pin 5V
+                                                    │                     └──► buzzer, modul SD (după caz)
+                                                    ├──► LM2940-5 ──► +5V senzor Auber
+                                                    │             └──► divizor ─► ADS A3
+                                                    └──► divizor 100k/22k ─► ADS A2 (baterie)
 
- Masă: un singur punct comun de masă pentru electronică, legat la caroserie/bloc cu cablu gros.
+ Masă: un singur punct comun pentru electronică, legat la caroserie/bloc cu cablu gros.
 ```
 
-- **AEM 30-0310** se alimentează cu 12 V comutat și masă, conform manualului AEM.
-- **USB între ESP32 și CM5:** ESP32 are alimentarea lui, deci folosește un cablu sau
-  adaptor care **întrerupe VBUS (5 V)** și păstrează doar datele și masa. Altfel două surse
-  de 5 V ajung legate împreună. ⚠ Nu am verificat dacă DevKitC-1 are diodă de protecție
-  pe portul USB nativ, așa că tratează conexiunea ca neprotejată.
+- **AEM 30-0310** se alimentează separat, cu 12 V comutat și masă, conform manualului AEM.
+- Când programezi ESP32 pe USB cu mașina pornită, ESP32 primește 5 V din două surse.
+  ⚠ Nu am verificat dacă DevKitC-1 are protecție pentru asta. Programează cu contactul oprit
+  sau folosește un cablu USB fără VBUS.
 
-## 3.2 ESP32-S3: tabel de pini
+## 3.2 Tabel de pini
 
 | ESP32-S3 | Conectat la | Observații |
 |---|---|---|
-| 3V3 | VIN pe MAX31865 ×3, MAX31856, ADS1115 | toate plăcile senzorilor la 3.3 V |
-| GND | GND comun | |
-| GPIO12 | SCK (CLK) pe toate MAX3186x | SPI software, senzori |
-| GPIO11 | SDI (MOSI) pe toate MAX3186x | |
-| GPIO13 | SDO (MISO) pe toate MAX3186x | + **10 kΩ pull-up la 3V3** |
+| 3V3 | VIN la MAX31865 ×3, MAX31856, ADS1115, MAX3232; VCC și BL la cele 3 GC9A01 | ⚠ verifică tensiunea acceptată de modulele tale |
+| GND | masă comună | |
+| GPIO12 | SCK (CLK) la toate MAX3186x | SPI software, senzori |
+| GPIO11 | SDI (MOSI) la toate MAX3186x | |
+| GPIO13 | SDO (MISO) la toate MAX3186x | + **pull-up 10 kΩ la 3V3** |
 | GPIO10 | CS MAX31865 #1 (apă) | |
 | GPIO14 | CS MAX31865 #2 (ulei) | |
-| GPIO15 | CS MAX31865 #3 (aer intercooler) | |
+| GPIO15 | CS MAX31865 #3 (aer după intercooler) | |
 | GPIO16 | CS MAX31856 (EGT) | |
 | GPIO8 | SDA ADS1115 | |
-| GPIO9 | SCL ADS1115 | ADDR pe ADS1115 legat la GND (adresa 0x48) |
-| GPIO4 | SCL/SCK display GC9A01 | |
-| GPIO5 | SDA/MOSI display | |
-| GPIO6 | CS display | |
-| GPIO7 | DC display | |
-| GPIO17 | RST display | |
-| GPIO18 | BL (backlight) display | |
-| GPIO1 | buton → GND | pull-up intern |
-| GPIO21 | bază tranzistor buzzer (prin 1 kΩ) | buzzer la 5 V, emitor la GND |
-| USB (port marcat "USB", nu "UART") | CM5 | apare ca `/dev/ttyACM0` |
+| GPIO9 | SCL ADS1115 | ADDR la GND → adresa 0x48 |
+| GPIO4 | SCL/SCK la **toate 3** display-urile | |
+| GPIO5 | SDA/MOSI la **toate 3** display-urile | |
+| GPIO7 | DC la **toate 3** display-urile | |
+| GPIO17 | RST/RES la **toate 3** display-urile | |
+| GPIO6 | CS display 1 | |
+| GPIO1 | CS display 2 | |
+| GPIO2 | CS display 3 | |
+| GPIO39 | SCK modul microSD | |
+| GPIO40 | MOSI (DI) modul microSD | |
+| GPIO41 | MISO (DO) modul microSD | |
+| GPIO42 | CS modul microSD | |
+| GPIO47 | R1OUT (RX, nivel TTL) la MAX3232 | ← R1IN primește TX RS232 de la AEM |
+| GPIO21 | buton → GND | pull-up intern |
+| GPIO18 | bază tranzistor buzzer (prin 1 kΩ) | buzzer la 5 V, emitorul la GND |
+
+### Display-urile
+
+- Pinul **BL/BLK** al fiecărui display merge la 3.3 V (lumina de fundal rămâne mereu aprinsă).
+- **Firele cât mai scurte.** La 40 MHz, firele lungi spre trei display-uri pot produce
+  imagini corupte. Dacă apar, scade `SPI_FREQUENCY` în `platformio.ini` la `20000000`
+  sau `27000000`.
+- Ordinea ecranelor (1, 2, 3) e cea din pagina de setări. Valorile de pe fiecare ecran se
+  aleg de acolo.
 
 ## 3.3 Intrările analogice (ADS1115)
 
@@ -58,45 +70,55 @@ Semnalele de 0–5 V trec printr-un divizor:
 ```
  semnal 0-5V ──[10k]──┬──────────► ADS Ax         5.0 V la semnal → 3.0 V la ADS
                       │
-                    [15k]   ═╪═ 100nF            BAT54S între Ax, 3V3 și GND (clamp)
+                    [15k]   ═╪═ 100nF            BAT54S între Ax, 3V3 și GND (limitare)
                       │      │
  GND ─────────────────┴──────┘
 
  +12V comutat ──[100k]──┬──► ADS A2              18.3 V la intrare → 3.3 V la ADS
                         │
-                      [22k]  ═╪═ 100nF  + BAT54S clamp
+                      [22k]  ═╪═ 100nF  + BAT54S
                         │     │
  GND ───────────────────┴─────┘
 ```
 
-| ADS1115 | Semnal | Divizor | Constantă în `config.h` |
+| ADS1115 | Semnal | Divizor | Setare în pagina web |
 |---|---|---|---|
-| A0 | AEM 30-0310 ieșire analogică | 10k/15k | `DIV_5V_SIGNALS` |
-| A1 | Senzor presiune Auber (semnal) | 10k/15k | `DIV_5V_SIGNALS` |
-| A2 | +12 V comutat | 100k/22k | `DIV_VBAT` |
-| A3 | +5 V care alimentează senzorul Auber | 10k/15k | `DIV_5V_SIGNALS` |
+| A0 | AEM 30-0310, ieșire analogică | 10k/15k | „Factor semnale 5 V” |
+| A1 | senzor Auber (semnal) | 10k/15k | „Factor semnale 5 V” |
+| A2 | +12 V comutat | 100k/22k | „Factor baterie” |
+| A3 | +5 V care alimentează senzorul Auber | 10k/15k | „Factor semnale 5 V” |
 
-- Măsurarea de pe A3 permite **corecția ratiometrică**: dacă cei 5 V ai senzorului variază,
-  citirea de presiune se corectează automat.
-- Dacă folosești alte rezistențe, actualizează factorii din `config.h`
-  (factor = (R_sus + R_jos) / R_jos).
-- **Masa AEM:** leagă masa de semnal/analogică a AEM (vezi manualul pentru culoarea firului)
-  la masa ADS1115, nu la un punct de caroserie aflat departe. O diferență de masă de câțiva zeci
-  de mV se vede direct în citirea AFR.
+- Citirea de pe A3 permite **corecția ratiometrică**: dacă tensiunea de 5 V a senzorului
+  variază, presiunea se corectează automat.
+- Dacă folosești alte rezistențe, schimbă factorii din pagină:
+  factor = (R_sus + R_jos) / R_jos.
+- **Masa AEM:** leagă masa de semnal a AEM (culoarea firului e în manual) la masa ADS1115,
+  nu la un punct îndepărtat de pe caroserie. Câțiva zeci de mV diferență de masă se văd
+  direct în citirea λ.
 
-## 3.4 Senzori de temperatură
+## 3.4 AEM RS232 → MAX3232
+
+```
+ AEM fir RS232 TX ──► MAX3232 R1IN    MAX3232 R1OUT ──► GPIO47
+ AEM masă         ──► MAX3232 GND     MAX3232 VCC   ──► 3V3
+```
+
+- Firul RS232 al AEM: ⚠ verifică culoarea în manual. Unele kituri au mufă DB9.
+- Pe GPIO47 nu se leagă **niciodată** direct RS232. Nivelurile de ±V ar distruge pinul.
+
+## 3.5 Senzorii de temperatură
 
 **Pt100 → MAX31865, cu 3 fire:**
-- Configurează jumperii plăcii pentru 3 fire conform ghidului producătorului plăcii.
-  Fiecare clonă poate avea alt layout. Pune `RTD_WIRES` la 3 în `config.h`.
-- Verifică rezistența de referință de pe placă: **430 Ω** (marcaj "431") la Adafruit,
-  iar unele clone au 400 Ω. Pune valoarea în `RTD_RREF`.
-- Folosește cablu ecranat și leagă ecranul la masă doar la capătul dinspre electronică.
+- Configurează jumperii plăcii pentru 3 fire conform ghidului producătorului. Clonele pot
+  avea alt layout.
+- Verifică rezistența de referință de pe placă: **430 Ω** (marcaj „431”) la Adafruit; unele
+  clone au 400 Ω. Valoarea se pune în pagină, la „RREF”.
+- Folosește cablu ecranat; leagă ecranul la masă doar la capătul dinspre electronică.
 
 **Termocuplu tip K → MAX31856:**
 - De la sondă până la bornele plăcii folosește **doar cablu de extensie tip K**. Orice
   îmbinare cu cupru creează un termocuplu parazit.
 - Respectă polaritatea. Culorile diferă între standarde (ANSI: galben +, roșu −; IEC:
-  verde +, alb −), așa că verifică-le pe cablul tău.
+  verde +, alb −), deci verifică-le pe cablul tău.
 - Placa MAX31856 măsoară temperatura joncțiunii reci. Montează placa în habitaclu, nu
-  lângă motor sau evacuare.
+  lângă motor.

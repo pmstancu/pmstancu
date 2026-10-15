@@ -1,6 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=LC100 Gauges Kiosk
-Comment=Chromium kiosk pe ecranul de 7" (copiază în ~/.config/autostart/)
-Exec=sh -c 'sleep 3; chromium --kiosk --noerrdialogs --disable-infobars --incognito http://127.0.0.1:8080/'
-X-GNOME-Autostart-enabled=true
