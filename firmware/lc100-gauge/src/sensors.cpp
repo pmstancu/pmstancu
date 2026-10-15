@@ -31,7 +31,13 @@ Adafruit_MAX31865 rtd[3] = {
     Adafruit_MAX31865(PIN_CS_IAT, PIN_SENS_MOSI, PIN_SENS_MISO, PIN_SENS_SCK),
 };
 Adafruit_MAX31856 egt(PIN_CS_EGT, PIN_SENS_MOSI, PIN_SENS_MISO, PIN_SENS_SCK);
+#if ADC_CHIP_ADS1015
+Adafruit_ADS1015 ads;
+constexpr uint16_t kAdcRate = RATE_ADS1015_490SPS;
+#else
 Adafruit_ADS1115 ads;
+constexpr uint16_t kAdcRate = RATE_ADS1115_475SPS;
+#endif
 bool adsOk = false;
 
 // Rezultatele task-ului lent, citite de task-ul rapid.
@@ -101,10 +107,10 @@ float readVolts(uint8_t ch) {
 
 void fastTask(void*) {
   Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL);
-  adsOk = ads.begin(ADS1115_ADDR, &Wire);
+  adsOk = ads.begin(ADC_ADDR, &Wire);
   if (adsOk) {
     ads.setGain(GAIN_ONE);  // ±4.096 V; intrările sunt sub 3.3 V după divizoare
-    ads.setDataRate(RATE_ADS1115_475SPS);
+    ads.setDataRate(kAdcRate);
   }
 
   Settings s = shared::settings();

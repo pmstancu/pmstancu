@@ -64,6 +64,7 @@
 
 ## 3.3 Intrările analogice (ADS1115)
 
+Totul de mai jos e valabil identic și pentru **ADS1015**, cu aceiași pini și aceeași adresă.
 ADS1115 e alimentat la **3.3 V**, deci **nicio intrare nu are voie să depășească 3.3 V**.
 Semnalele de 0–5 V trec printr-un divizor:
 

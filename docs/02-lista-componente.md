@@ -20,7 +20,7 @@ cu ⚠ citește observația.
 |---|---|---|
 | 1 | **ESP32-S3-DevKitC-1** (modul WROOM-1, de ex. N8 sau N16R8) | controllerul |
 | 1 | **MAX31856** pe placă breakout | ⚠ **pentru termocuplul tip K**; MAX31865 nu îl poate citi |
-| 1 | **ADS1115** pe placă breakout | ADC 16 biți: AEM analogic, boost, baterie, referința de 5 V |
+| 1 | **ADS1115** (sau **ADS1015**) pe placă breakout | ADC: AEM analogic, boost, baterie, referința de 5 V. Vezi mai jos pentru ADS1015 |
 | 1 | **Modul MAX3232** (RS232 ↔ TTL), care merge la 3.3 V | ⚠ ieșirea RS232 a AEM are niveluri de ±V; ESP32 ar fi distrus fără convertor |
 | 1 | **Modul microSD SPI** + card **≤ 32 GB, FAT32** | log. ⚠ multe module ieftine au regulator pentru 5 V; alimentează-l conform plăcii |
 | 1 | Convertor DC-DC auto 12 V → 5 V, ≥ 2 A, cu protecție la intrare | alimentarea ESP32 și a display-urilor |
@@ -38,6 +38,22 @@ cu ⚠ citește observația.
 | — | Cablu scurt pentru display-uri (cât mai scurt, vezi [03](03-cablaj.md)) | |
 | 1 | Cutie IP54+ pentru electronică, conectori auto (de ex. Deutsch DT sau similari) | |
 | — | Adaptoare pentru montajul senzorilor (vezi [04](04-montaj-senzori.md)) | |
+
+## ADS1015 în loc de ADS1115
+
+Merge. Cipurile au aceiași pini, aceeași adresă I2C și sunt suportate de aceeași bibliotecă.
+În `include/pins.h` pune `#define ADC_CHIP_ADS1015 1`.
+
+Diferența e rezoluția: 12 biți în loc de 16, adică un pas de aproximativ 2 mV în loc de
+0.125 mV la intrarea ADC. După divizoare, asta înseamnă (calculul meu):
+
+| Canal | Pas cu ADS1015 | Comparat cu |
+|---|---|---|
+| Boost | ≈ 0.0025 bar (≈ 0.04 psi) | precizia senzorului Auber: 1 % FS ≈ 0.036 bar |
+| λ (AEM analogic) | ≈ 0.0004 λ | neglijabil |
+| Baterie | ≈ 11 mV | neglijabil |
+
+Pentru aceste semnale, precizia e dată de senzori, nu de ADC.
 
 ## Consum estimat
 

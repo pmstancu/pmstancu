@@ -16,12 +16,17 @@
 #define PIN_CS_IAT     15   // MAX31865 aer după intercooler
 #define PIN_CS_EGT     16   // MAX31856 EGT tip K
 
-// I2C pentru ADS1115
+// I2C pentru convertorul analog-digital
 #define PIN_I2C_SDA    8
 #define PIN_I2C_SCL    9
-#define ADS1115_ADDR   0x48  // ADDR la GND
+#define ADC_ADDR       0x48  // ADDR la GND
 
-// Canalele ADS1115
+// Ce convertor e montat: 0 = ADS1115 (16 biți), 1 = ADS1015 (12 biți).
+// Cablajul e identic. Cu ADS1015 pasul e ~2 mV în loc de 0.125 mV, tot mult
+// sub precizia senzorilor (vezi docs/02-lista-componente.md).
+#define ADC_CHIP_ADS1015 0
+
+// Canalele ADS1115 / ADS1015
 #define ADC_CH_AEM     0    // AEM ieșire analogică 0–5 V (prin divizor)
 #define ADC_CH_BOOST   1    // Auber 0.1–4.85 V (prin divizor)
 #define ADC_CH_VBAT    2    // baterie (divizor 100k/22k)
