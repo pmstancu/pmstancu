@@ -13,7 +13,8 @@
 - Montajul uzual este cu un fiting de compresie, adesea cu filet 1/8" NPT. Folosește
   fitingul livrat cu sonda.
 - O sondă cu **joncțiune izolată** (ungrounded) evită problemele cu masa motorului. Cu o
-  sondă cu joncțiunea la masă, MAX31856 poate raporta defecte sau citiri instabile.
+  sondă cu joncțiunea la masă, MAX31856 poate raporta defecte sau citiri instabile, iar
+  **MAX31855K nu funcționează deloc** (raportează „scurt la GND”).
 - Temperatura pre-turbo e semnificativ **mai mare** decât cea post-turbo. Pragurile
   implicite (650/720 °C) presupun montaj pre-turbo și sunt **orientative**.
 

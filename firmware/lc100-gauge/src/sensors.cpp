@@ -1,7 +1,12 @@
 #include "sensors.h"
 
 #include <Adafruit_ADS1X15.h>
+#include "pins.h"
+#if EGT_CHIP_MAX31855
+#include <Adafruit_MAX31855.h>
+#else
 #include <Adafruit_MAX31856.h>
+#endif
 #include <Adafruit_MAX31865.h>
 #include <Arduino.h>
 #include <Wire.h>
@@ -21,16 +26,43 @@ constexpr uint32_t kAemMaxAgeMs = 1000;
 constexpr float kAlphaFast = 0.35f;
 constexpr float kAlphaSlow = 0.15f;
 constexpr float kAlphaTemp = 0.5f;
-// Bitii de defect MAX31856 care invalidează citirea: CJRANGE, TCRANGE, OVUV, OPEN.
-// TCHIGH/TCLOW (praguri programabile) sunt ignorați.
-constexpr uint8_t kEgtFaultMask = 0xC3;
 
 Adafruit_MAX31865 rtd[3] = {
     Adafruit_MAX31865(PIN_CS_ECT, PIN_SENS_MOSI, PIN_SENS_MISO, PIN_SENS_SCK),
     Adafruit_MAX31865(PIN_CS_EOT, PIN_SENS_MOSI, PIN_SENS_MISO, PIN_SENS_SCK),
     Adafruit_MAX31865(PIN_CS_IAT, PIN_SENS_MOSI, PIN_SENS_MISO, PIN_SENS_SCK),
 };
+#if EGT_CHIP_MAX31855
+// MAX31855K: doar citire (fără MOSI), tip K fix în cip.
+Adafruit_MAX31855 egt(PIN_SENS_SCK, PIN_CS_EGT, PIN_SENS_MISO);
+
+bool egtBegin() { return egt.begin(); }
+
+// Defecte: 0x01 fir rupt, 0x02 scurt la GND, 0x04 scurt la VCC.
+float egtRead(uint8_t* fault) {
+  float t = static_cast<float>(egt.readCelsius());
+  *fault = std::isnan(t) ? (egt.readError() & 0x07) : 0;
+  return t;
+}
+#else
 Adafruit_MAX31856 egt(PIN_CS_EGT, PIN_SENS_MOSI, PIN_SENS_MISO, PIN_SENS_SCK);
+
+bool egtBegin() {
+  if (!egt.begin()) return false;
+  egt.setThermocoupleType(MAX31856_TCTYPE_K);
+  egt.setNoiseFilter(MAX31856_NOISE_FILTER_50HZ);
+  egt.setConversionMode(MAX31856_CONTINUOUS);
+  return true;
+}
+
+// Bitii de defect care invalidează citirea: CJRANGE, TCRANGE, OVUV, OPEN.
+// TCHIGH/TCLOW (praguri programabile) sunt ignorați.
+float egtRead(uint8_t* fault) {
+  float t = egt.readThermocoupleTemperature();
+  *fault = egt.readFault() & 0xC3;
+  return t;
+}
+#endif
 #if ADC_CHIP_ADS1015
 Adafruit_ADS1015 ads;
 constexpr uint16_t kAdcRate = RATE_ADS1015_490SPS;
@@ -54,12 +86,7 @@ void publishTemp(int i, float v, uint8_t fault) {
 
 void tempTask(void*) {
   for (auto& r : rtd) r.begin(MAX31865_3WIRE);
-  bool egtOk = egt.begin();
-  if (egtOk) {
-    egt.setThermocoupleType(MAX31856_TCTYPE_K);
-    egt.setNoiseFilter(MAX31856_NOISE_FILTER_50HZ);
-    egt.setConversionMode(MAX31856_CONTINUOUS);
-  }
+  bool egtOk = egtBegin();
   float filt[4] = {NAN, NAN, NAN, NAN};
 
   for (;;) {
@@ -85,8 +112,8 @@ void tempTask(void*) {
     }
 
     if (egtOk) {
-      float t = egt.readThermocoupleTemperature();
-      uint8_t fault = egt.readFault() & kEgtFaultMask;
+      uint8_t fault = 0;
+      float t = egtRead(&fault);
       if (fault || std::isnan(t) || t < -50.0f || t > 1300.0f) {
         if (!fault) fault = FAULT_RANGE;
         t = NAN;

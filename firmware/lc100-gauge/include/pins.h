@@ -14,7 +14,12 @@
 #define PIN_CS_ECT     10   // MAX31865 apă
 #define PIN_CS_EOT     14   // MAX31865 ulei
 #define PIN_CS_IAT     15   // MAX31865 aer după intercooler
-#define PIN_CS_EGT     16   // MAX31856 EGT tip K
+#define PIN_CS_EGT     16   // MAX31856 (sau MAX31855K) EGT tip K
+
+// Ce cip citește termocuplul: 0 = MAX31856, 1 = MAX31855K.
+// MAX31855K nu folosește MOSI; cere sondă cu joncțiune izolată.
+// Diferențele: docs/02-lista-componente.md.
+#define EGT_CHIP_MAX31855 0
 
 // I2C pentru convertorul analog-digital
 #define PIN_I2C_SDA    8

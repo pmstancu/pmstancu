@@ -35,7 +35,7 @@
 | GPIO10 | CS MAX31865 #1 (apă) | |
 | GPIO14 | CS MAX31865 #2 (ulei) | |
 | GPIO15 | CS MAX31865 #3 (aer după intercooler) | |
-| GPIO16 | CS MAX31856 (EGT) | |
+| GPIO16 | CS MAX31856 sau MAX31855K (EGT) | MAX31855K nu are intrare MOSI (SDI) |
 | GPIO8 | SDA ADS1115 | |
 | GPIO9 | SCL ADS1115 | ADDR la GND → adresa 0x48 |
 | GPIO4 | SCL/SCK la **toate 3** display-urile | |

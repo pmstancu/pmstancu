@@ -23,7 +23,7 @@ Totul rulează pe **un singur ESP32-S3**, fără Raspberry Pi:
 | Temperatură apă | Pt100 | MAX31865 #1 |
 | Temperatură ulei | Pt100 | MAX31865 #2 |
 | Temperatură aer după intercooler | Pt100 | MAX31865 #3 |
-| EGT pre-turbo | termocuplu tip K | **MAX31856** (MAX31865 nu poate citi termocupluri) |
+| EGT pre-turbo | termocuplu tip K | **MAX31856** sau MAX31855K (MAX31865 nu poate citi termocupluri) |
 | Boost | Auber, −0.3…3.3 bar relativ, 0.1–4.85 V ratiometric | ADS1115 A1 (+ ref. 5 V pe A3) |
 | λ | AEM 30-0310: RS232 (prioritar) și ieșirea analogică | MAX3232 → UART și ADS1115 A0 |
 | Tensiune baterie | divizor rezistiv | ADS1115 A2 |
@@ -72,7 +72,7 @@ mediul în care a fost scris nu a avut acces la registrul PlatformIO. Ce s-a ver
 
 - 18 teste pentru logica pură, toate trec;
 - toate fișierele `.cpp` trec de compilator (g++ `-Wall -Wextra`), contra headerelor
-  reale Adafruit MAX31865/MAX31856/ADS1X15 și ArduinoJson și a unor stub-uri care
+  reale Adafruit MAX31865/MAX31856/MAX31855/ADS1X15 și ArduinoJson și a unor stub-uri care
   reproduc semnăturile din sursele TFT_eSPI și arduino-esp32;
 - pagina web, într-un browser Chromium la lățime de telefon, cu un server simulat.
 

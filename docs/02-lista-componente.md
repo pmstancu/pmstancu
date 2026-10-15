@@ -19,7 +19,7 @@ cu ⚠ citește observația.
 | Cant. | Piesă | Rol |
 |---|---|---|
 | 1 | **ESP32-S3-DevKitC-1** (modul WROOM-1, de ex. N8 sau N16R8) | controllerul |
-| 1 | **MAX31856** pe placă breakout | ⚠ **pentru termocuplul tip K**; MAX31865 nu îl poate citi |
+| 1 | **MAX31856** (sau **MAX31855K**) pe placă breakout | ⚠ **pentru termocuplul tip K**; MAX31865 nu îl poate citi. Vezi mai jos pentru MAX31855K |
 | 1 | **ADS1115** (sau **ADS1015**) pe placă breakout | ADC: AEM analogic, boost, baterie, referința de 5 V. Vezi mai jos pentru ADS1015 |
 | 1 | **Modul MAX3232** (RS232 ↔ TTL), care merge la 3.3 V | ⚠ ieșirea RS232 a AEM are niveluri de ±V; ESP32 ar fi distrus fără convertor |
 | 1 | **Modul microSD SPI** + card **≤ 32 GB, FAT32** | log. ⚠ multe module ieftine au regulator pentru 5 V; alimentează-l conform plăcii |
@@ -38,6 +38,33 @@ cu ⚠ citește observația.
 | — | Cablu scurt pentru display-uri (cât mai scurt, vezi [03](03-cablaj.md)) | |
 | 1 | Cutie IP54+ pentru electronică, conectori auto (de ex. Deutsch DT sau similari) | |
 | — | Adaptoare pentru montajul senzorilor (vezi [04](04-montaj-senzori.md)) | |
+
+## MAX31855K în loc de MAX31856
+
+Merge, cu două condiții:
+
+- placa trebuie să fie **MAX31855K**: litera de la final arată tipul de termocuplu, iar
+  pentru tip K trebuie „K”;
+- sonda EGT trebuie să aibă **joncțiunea izolată** (ungrounded). Cu o sondă cu joncțiunea
+  la masă, MAX31855 raportează „scurt la GND” și nu dă citiri.
+
+În `include/pins.h` pune `#define EGT_CHIP_MAX31855 1`.
+
+Diferențele, din memorie, după fișele tehnice; ⚠ verifică cifrele în fișa MAX31855:
+
+| | MAX31856 | MAX31855K |
+|---|---|---|
+| Tipuri de termocuplu | toate, configurabil | doar K (fix în cip) |
+| Rezoluție | 0.0078 °C | 0.25 °C |
+| Liniarizare | internă | fără (aproximare liniară); eroarea crește la temperaturi mari |
+| Precizie | mai bună | aproximativ ±2 °C până la ~700 °C, mai mare peste |
+| Filtru 50/60 Hz | da | nu |
+| Defecte | fir rupt, supra/subtensiune, depășire domeniu | fir rupt, scurt la GND, scurt la VCC |
+| MOSI | folosit | nefolosit |
+
+Pentru alarmele EGT de la 650/720 °C, câteva grade eroare nu contează practic.
+Codurile de defect afișate în pagina web pentru MAX31855: 0x1 = fir rupt,
+0x2 = scurt la GND, 0x4 = scurt la VCC.
 
 ## ADS1015 în loc de ADS1115
 

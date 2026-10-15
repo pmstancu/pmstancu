@@ -16,6 +16,7 @@ rezonabile, dar fiecare trebuie verificată.
 | 9 | Filetele adaptoarelor pentru senzori | — | măsurare pe mașină |
 | 10 | Pinii plăcii ESP32-S3 (mai ales pe ce pin e LED-ul RGB, 38 sau 48, și dacă placa are PSRAM octal care ocupă GPIO 35–37) | `pins.h`, `platformio.ini` | marcajul și schema plăcii tale |
 | 10b | Ce convertor ai: ADS1115 sau ADS1015 (marcajul de pe cip) | `ADC_CHIP_ADS1015` în `pins.h` | marcajul cipului / vânzătorul |
+| 10c | Ce cip ai pentru EGT: MAX31856 sau MAX31855K; pentru MAX31855K, precizia la 700–900 °C | `EGT_CHIP_MAX31855` în `pins.h` | marcajul cipului, fișa tehnică MAX31855 |
 | 11 | Modulele GC9A01: tensiunea pe VCC și pinul de lumină de fundal | — | vânzătorul / documentația modulului |
 | 12 | Modulul microSD: dacă merge la 3.3 V sau are nevoie de 5 V | — | documentația modulului |
 | 13 | Adresa paginii web (implicit 192.168.4.1) | — | setările Wi-Fi ale telefonului, după conectare |
