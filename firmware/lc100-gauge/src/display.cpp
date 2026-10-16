@@ -14,6 +14,7 @@ namespace {
 TFT_eSPI tft;
 TFT_eSprite spr(&tft);
 bool sprOk = false;
+uint8_t sprDepth = 0;
 
 const uint8_t kCs[kScreens] = {PIN_CS_DISP1, PIN_CS_DISP2, PIN_CS_DISP3};
 uint32_t lastHash[kScreens] = {0, 0, 0};
@@ -159,10 +160,12 @@ void begin() {
 
   spr.setColorDepth(16);
   sprOk = spr.createSprite(240, 240) != nullptr;
+  sprDepth = sprOk ? 16 : 0;
   if (!sprOk) {
     // Memorie insuficientă (fără PSRAM, heap fragmentat): 8 biți = jumătate.
     spr.setColorDepth(8);
     sprOk = spr.createSprite(240, 240) != nullptr;
+    sprDepth = sprOk ? 8 : 0;
   }
 }
 
@@ -177,6 +180,24 @@ void message(const char* line1, const char* line2) {
   selectAll(false);
   for (uint32_t& h : lastHash) h = 0;
 }
+
+void identify(uint8_t screen, uint16_t color, const char* line1, const char* line2) {
+  if (screen >= kScreens) return;
+  digitalWrite(kCs[screen], LOW);
+  tft.fillScreen(color);
+  tft.setTextDatum(MC_DATUM);
+  tft.setTextColor(TFT_WHITE, color);
+  tft.drawString(line1, kCx, 105, 4);
+  if (line2) tft.drawString(line2, kCx, 140, 2);
+  digitalWrite(kCs[screen], HIGH);
+  lastHash[screen] = 0;
+}
+
+void forceRedraw() {
+  for (uint32_t& h : lastHash) h = 0;
+}
+
+uint8_t bufferDepth() { return sprDepth; }
 
 void update(const Snapshot& snap, const Settings& s, const Status& st) {
   if (!sprOk) return;

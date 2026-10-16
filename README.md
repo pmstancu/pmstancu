@@ -38,6 +38,7 @@ firmware/lc100-gauge/
   include/*.h             logică pură: conversii, alarme, parser AEM, CSV, afișare
   src/                    senzori, display-uri, log SD, server web, main
   test/test_native/       teste pe PC pentru logica pură
+firmware/display-test/    test separat pentru cele 3 display-uri (refolosește codul de afișare)
 docs/                     documentație (arhitectură, piese, cablaj, montaj, Wi-Fi, calibrare)
 ```
 
@@ -50,6 +51,7 @@ docs/                     documentație (arhitectură, piese, cablaj, montaj, Wi
 5. [Utilizare: display-uri, buton, Wi-Fi, log](docs/05-utilizare.md)
 6. [Calibrare și testare](docs/06-calibrare-testare.md)
 7. **[Lucruri de verificat înainte de punerea în funcțiune](docs/07-de-verificat.md)**
+8. [Test pentru cele 3 display-uri](docs/08-test-display.md)
 
 ## Pornire rapidă
 

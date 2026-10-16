@@ -50,3 +50,17 @@ La prima compilare reală pot apărea diferențe de versiune. Ce merită știut:
 După prima compilare reușită, fixează versiunile exacte în `platformio.ini`
 (`platform = espressif32@x.y.z`, `lib_deps = ...@x.y.z`), ca build-urile ulterioare să fie
 reproductibile.
+
+## Etapa următoare: PCB
+
+După ce prototipul cu module confirmă pinii, frecvența SPI a display-urilor și formatul AEM,
+urmează PCB-urile, în KiCad:
+
+- **placa de bază:** ESP32-S3-DevKitC-1 și modulele breakout în socluri, plus alimentarea
+  și protecțiile (siguranță, TVS, protecție la inversarea polarității, convertor 12 → 5 V,
+  regulator 5 V pentru senzor), divizoarele și conectorii auto;
+- **plăci mici pentru display-uri:** câte una pentru fiecare GC9A01, cu conector spre placa
+  de bază.
+
+Fabricație, de exemplu la JLCPCB. ⚠ Codurile componentelor LCSC, stocul și prețurile se
+confirmă la momentul comenzii.
